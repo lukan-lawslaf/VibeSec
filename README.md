@@ -1,74 +1,123 @@
-<div align="center">
+# VibeSec 🔐
 
+> AI-powered security scanner for code, GitHub repositories, and live URLs.
+
+VibeSec combines static AST analysis, RAG-augmented vulnerability detection, and real HTTP probing with AI triage — giving developers prioritised, actionable security findings instead of noisy raw dumps.
+
+---
+
+## Features
+
+| Scan Mode | What It Does |
+|-----------|-------------|
+| **Code Scan** | AST parsing → RAG context → DeepHat V1 vulnerability detection → DeepSeek patch generation |
+| **GitHub Repo Scan** | Clones any public repo, scans all Python files, aggregates findings |
+| **Live URL Scan** | Real HTTP probe (headers, cookies, CORS, exposed paths) + nmap (when permitted) → Groq AI triage |
+
+---
+
+## Tech Stack
+
+**Backend** — FastAPI · Python 3.11+ · ChromaDB (RAG) · HuggingFace InferenceClient · Groq  
+**Frontend** — React + Vite · TypeScript · TailwindCSS · Supabase Auth  
+**Models** — DeepHat V1 (vuln detection) · DeepSeek-V3 (patch generation) · Llama-3.3-70B via Groq (live triage)
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- [HuggingFace API key](https://huggingface.co/settings/tokens)
+- [Groq API key](https://console.groq.com/)
+- [Supabase project](https://supabase.com/) (for auth)
+
+### 1. Clone & configure
+
+```bash
+git clone https://github.com/lukan-lawslaf/VibeSec.git
+cd VibeSec
+cp .env.example .env          # fill in your keys
 ```
 
-████████╗███████╗ ██████╗ ██████╗ ██████╗ ███████╗
-╚══██╔══╝██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝
-   ██║   █████╗  ██║     ██║   ██║██████╔╝███████╗
-   ██║   ██╔══╝  ██║     ██║   ██║██╔══██╗╚════██║
-   ██║   ███████╗╚██████╗╚██████╔╝██║  ██║███████║
-   ╚═╝   ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
+`.env` keys:
+```
+HF_API_KEY=hf_...
+GROQ_API_KEY=gsk_...
 ```
 
+`frontend/.env` keys:
+```
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+```
 
-# VibeSec
+### 2. Backend
 
+```bash
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-AI-powered security pipeline that automatically finds and fixes vulnerabilities in your code — paste a snippet, drop a GitHub URL, or scan a live endpoint and get patched code back in seconds.
+API docs available at `http://localhost:8000/docs`
 
+### 3. Frontend
 
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-
-</div>
-
----
-
-
-## 📖 About
-
-AI-powered security pipeline that automatically finds and fixes vulnerabilities in your code — paste a snippet, drop a GitHub URL, or scan a live endpoint and get patched code back in seconds.
-
----
-
-## ✨ Features
-
-- ✅ Clean and maintainable codebase
-- ✅ Well-documented with examples
-- ✅ Easy to extend and customize
+Frontend at `http://localhost:5173`
 
 ---
 
-## 🛠️ Tech Stack
+## API Endpoints
 
-**Languages**: `TypeScript`
+```
+POST /api/v1/scan/static       # Scan Python source code
+POST /api/v1/scan/live         # Scan a live URL
+POST /api/v1/repo/scan         # Scan a GitHub repository
+GET  /api/v1/scan/health       # Health check
+```
+
+---
+
+## Project Structure
+
+```
+vibesec/
+├── app/
+│   ├── agents/
+│   │   ├── vuln_agent.py      # DeepHat V1 vulnerability detection
+│   │   ├── patch_agent.py     # DeepSeek patch generation
+│   │   ├── live_agent.py      # HTTP probe + Groq triage
+│   │   └── repo_agent.py      # GitHub repo scanner
+│   ├── parsers/
+│   │   └── ast_parser.py      # Python AST analysis
+│   ├── routers/
+│   │   ├── scan.py            # /scan endpoints
+│   │   └── repo.py            # /repo endpoints
+│   ├── utils/
+│   │   └── rag.py             # ChromaDB RAG pipeline
+│   └── main.py
+├── frontend/                  # React + Vite app
+├── .env.example
+└── requirements.txt
+```
 
 ---
 
-## 🤝 Contributing
+## Notes
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- **Live URL scan**: nmap is attempted via WSL but gracefully skipped if blocked. When nmap is blocked/filtered, only HTTP-layer findings (headers, cookies, CORS, exposed paths) are reported — no hallucinated network vulnerabilities.
+- **Patch agent**: Changes are minimal and surgical. Import statements and third-party API names are always preserved exactly.
+- **Code scan**: DeepHat V1 is instructed to ignore comments, env-var reads, and framework boilerplate (FastAPI, Supabase, HuggingFace idioms).
 
 ---
+
+## License
 
 MIT
-
----
-
-
-
-
----
-<div align="center">
-
-**Made with ❤️ by [lukan-lawslaf](https://github.com/lukan-lawslaf)**
-
-⭐ Star this repo if you found it helpful!
-
-</div>
